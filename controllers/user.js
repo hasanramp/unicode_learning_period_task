@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { v2 as cloudinary } from 'cloudinary';
 import path from 'path';
-import Job from '../models/job.js';
+import FollowerFollowingSchema from '../models/follower_following.js'
 
 
 export async function signup(req, res) {
@@ -122,4 +122,47 @@ export async function applyForJobListing(req, res) {
     application.save()
         .then((resp) => {return res.status(200).send("uploaded application")} )
         .catch((err) => {return res.status(400).send("could not upload application")} );
+}
+
+export async function follow(req, res) {
+	
+	if (!req.body.following_id) return res.status(400).send("Following id not provided");
+
+	const date = new Date();
+	const follow = new FollowerFollowingSchema({
+		follower_id: req.user._id,
+		to_follow_id: req.body.following_id,
+		follow_date: date
+	});
+
+	follow.save()
+		.then((resp) => { return res.status(200).send("Followed successfully") })
+		.catch((err) => { return res.status(400).send("Could not Follow") });
+
+}
+
+export async function unfollow(req, res) {
+
+	if (!req.body.following_id) return res.status(400).send("Following id not provided");
+
+	FollowerFollowingSchema.deleteOne({ follower_id: req.user._id, following_id: req.body.following_id })
+		.then((resp) => { return res.status(200).send("Unfollowed successfully") })
+		.catch((err) => { return res.status(400).send("Could not unfollow") });
+
+}
+
+export async function listFollowing(req, res) {
+
+	FollowerFollowingSchema.find({ follower_id: req.user._id })
+		.populate("to_follow_id")
+        .then((users) => { return res.status(200).json({ following: users }) })
+        .catch((err) => { return res.status(400).send("could not get users") });
+}
+
+export async function listFollowers(req, res) {
+
+	FollowerFollowingSchema.find({ to_follow_id: req.user._id })
+		.populate("follower_id")
+        .then((users) => { return res.status(200).json({ followers: users }) })
+        .catch((err) => { return res.status(400).send("could not get users") });
 }
